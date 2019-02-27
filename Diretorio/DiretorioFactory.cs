@@ -7,48 +7,35 @@
 
     public class DiretorioFactory
     {
-        private readonly ICollection<string> _listaEntrada;
+        private List<Diretorio> _diretorios;
+        private int profundidade = 0;
 
-        public DiretorioFactory(ICollection<string> listaEntrada)
+        public DiretorioFactory()
         {
-            _listaEntrada = listaEntrada;
+            _diretorios = new List<Diretorio>();
         }
 
-        public override string ToString()
+        public DiretorioFactory AdicionaDiretorios(ICollection<string> listaEntrada)
         {
-            // Falta implementar essa parte
-            return _listaEntrada.ToString();
-        }
-
-        public ICollection<Diretorio> getModelo()
-        {
-            IEnumerable<Diretorio> listaModelos = _listaEntrada.Select(a => TrataLinha(SeparaStrings(a)));
-            ICollection<Diretorio> _listaSaida = new List<Diretorio>();
-
-            foreach (Diretorio item in listaModelos)
+            foreach (string item in listaEntrada)
             {
-
-                if (!_listaSaida.Where(a => a.Nome == item.Nome).Any())
-                {
-                    _listaSaida.Add(item);
-                }
-                else
-                {
-                    var aux = _listaSaida.Where(a => a.Nome == item.Nome).SingleOrDefault();
-                    _listaSaida.Remove(aux);
-                    aux.setTamanho(item.tamanho);
-                    foreach (var subDiretorio in item.SubDiretorios)
-                    {
-                        if (!aux.SubDiretorios.Contains(subDiretorio)) aux.SubDiretorios.Add(subDiretorio);
-                    }
-                    _listaSaida.Add(aux);
-                }
+                _diretorios.AddRange(TrataLinha(SeparaStrings(item)));
             }
 
-            return _listaSaida;
+            return this;
         }
 
-        public Diretorio TrataLinha((IEnumerable<string>, int) stringSeparada)
+        public ICollection<Diretorio> AgregaDiretorios()
+        {
+            foreach (Diretorio item in _diretorios)
+            {
+                item.SubDiretorios.AddRange(_diretorios.Where(a => a.Raiz == item.Nome));
+            }
+
+            return _diretorios.Where(a => string.IsNullOrEmpty(a.Raiz)).ToList();
+        }
+
+        public ICollection<Diretorio> TrataLinha((IEnumerable<string>, int) stringSeparada)
         {
             List<Diretorio> listaResultado = new List<Diretorio>();
             for (int i = 0; i < stringSeparada.Item1.Count(); i++)
@@ -56,18 +43,21 @@
                 Diretorio modelo = new Diretorio(stringSeparada.Item1.ElementAt(i));
                 if (i == stringSeparada.Item1.Count() - 1)
                 {
-                    modelo.setTamanho(stringSeparada.Item2);
+                    modelo.SetTamanho(stringSeparada.Item2);
                 }
 
                 if (i > 0)
                 {
-                    listaResultado.ElementAt(i - 1).SubDiretorios.Add(modelo);
+                    modelo.Raiz = stringSeparada.Item1.ElementAtOrDefault(i - 1);
                 }
 
-                listaResultado.Add(modelo);
+                if (!_diretorios.Exists(a => a.Nome == modelo.Nome && a.Raiz == modelo.Raiz))
+                {
+                    listaResultado.Add(modelo);
+                }
             }
 
-            return listaResultado.ElementAt(0);
+            return listaResultado;
         }
 
         public (IEnumerable<string>, int) SeparaStrings(string Path)
@@ -79,6 +69,39 @@
             return (diretorios, Convert.ToInt16(tamanhoArquivo));
         }
 
+        public string EscreveDiretorio(Diretorio diretorio)
+        {
+            profundidade++;
+            StringBuilder stringBuilder = new StringBuilder();
+
+            for (int i = 0; i < profundidade; i++)
+            {
+                stringBuilder.AppendFormat("     ");
+            }
+            stringBuilder.AppendFormat("- {0} ({1} kb)", diretorio.Nome, diretorio.GetTamanho());
+            stringBuilder.AppendLine();
+
+            for (int i = 0; i < diretorio.SubDiretorios.Count; i++)
+            {
+                stringBuilder.AppendFormat(EscreveDiretorio(diretorio.SubDiretorios.ElementAt(i)));
+                profundidade--;
+            }
+
+            return stringBuilder.ToString();
+        }
+
+        public override string ToString()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+
+            foreach (Diretorio item in AgregaDiretorios())
+            {
+                stringBuilder.AppendFormat(EscreveDiretorio(item));
+                profundidade = 0;
+            }
+
+            return stringBuilder.ToString();
+        }
 
     }
 }

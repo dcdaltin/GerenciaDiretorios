@@ -5,11 +5,13 @@
 
     public class Diretorio
     {
-        public int tamanho { get; set; }
+        public int Tamanho { get; set; }
 
         public string Nome { get; set; }
 
-        public ICollection<Diretorio> SubDiretorios { get; set; }
+        public virtual string Raiz { get; set; }
+
+        public List<Diretorio> SubDiretorios { get; set; }
 
         public Diretorio(string nome)
         {
@@ -17,20 +19,16 @@
             SubDiretorios = new List<Diretorio>();
         }
 
-        public Diretorio(string nome, ICollection<Diretorio> subDiretorios)
+        public int GetTamanho()
         {
-            Nome = nome;
-            SubDiretorios = subDiretorios;
+            return SubDiretorios.Any() ? SubDiretorios.Sum(a => a.GetTamanho()) : Tamanho;
         }
 
-        public int getTamanho()
+        public void SetTamanho(int tamanho)
         {
-            return SubDiretorios.Any() ? SubDiretorios.Sum(a => a.getTamanho()) : tamanho;
+            this.Tamanho += tamanho;
         }
 
-        public void setTamanho(int tamanho)
-        {
-            this.tamanho += tamanho;
-        }
+        public bool HasNext() { return this.SubDiretorios.Any(); }
     }
 }
